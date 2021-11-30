@@ -1,0 +1,160 @@
+---
+title: "FHEPS Graphics for Final Report"
+author: "Patrick Spauster"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    code_folding: show
+---
+
+```{r}
+library(tidyverse)
+library(tidycensus)
+library(tigris)
+library(airtabler)
+library(sf)
+library(DT)
+library(urbnthemes)
+library(urbnmapr)
+
+set_urbn_defaults(style = "print")
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This section adapted from the airtabler documentation: https://github.com/bergant/airtabler
+
+To begin, generate the airtable API key from your Airtable account page: http://airtable.com/account
+
+Airtabler functions will read the API key from environment variable AIRTABLE_API_KEY. While you're at it, if you don't have a census api key, add that to the environment too.  You can sign-up for a key here:https://api.census.gov/data/key_signup.html
+
+To start R session with the initialized environvent variable create an .Renviron file in your home directory by running the following code in the console:
+
+"usethis::edit_r_environ(scope = "project")"
+
+Then add the following text to the .renviron file with the API key you got from the airtable website
+
+"AIRTABLE_API_KEY=your_api_key_here"
+"census_api_key=your_api_key_here"
+
+Save the .rEnviron file and restart your R session.
+
+To check where your home is, type path.expand("~") in your R console. Use normalizePath("~/your_file_path") to set it if it's not correct
+
+
+Pull the airtable data in list form
+```{r}
+airtable_pull <- airtable(base = "appalJm1WCpSYqwZw", tables = "ALL_clean")
+
+```
+get it into a dataframe
+```{r}
+all_reports <- airtable_pull$ALL_clean$select_all()
+
+```
+
+read in census data
+```{r}
+nyc_counties <- c("005", "047", "061", "081", "085") #fips for NYC counties
+
+rents_2019 <- get_acs(
+  geography = "tract",
+  year = 2019,
+  state = "NY",
+  county = nyc_counties,
+  geometry = TRUE,
+  variables = "B25064_001E" #med_gross_rent
+) %>% 
+  mutate(voucher_amount = factor(
+            case_when(
+                estimate < 1580 ~ "Below voucher amount",
+                estimate >= 1580 ~ "Above voucher amount",
+                is.na(estimate) ~ "No rent data"), 
+            levels = c("Below voucher amount", "Above voucher amount", "No rent data")
+  )
+  )
+```
+
+filter to only cityfheps that have address data
+```{r}
+FHEPS_reports <- all_reports %>% 
+  filter(voucher_type == "CityFHEPS",
+         !is.na(long),
+         !is.na(lat)) %>% 
+  st_as_sf(coords = c("long", "lat")) %>% 
+  st_set_crs(st_crs(rents_2019))
+
+```
+
+
+spatial join
+```{r}
+
+FHEPS_tracts <- st_intersection(x = FHEPS_reports, y = rents_2019)
+```
+
+Reports by neighborhood median rent
+``` {r}
+datatable(data = count(as.data.frame(FHEPS_tracts), voucher_amount),
+          caption = "Reports in tracts with Median Rents above and below the FHEPS voucher amount",
+          colnames = c("Tract Median Rent", "Number of Reports"))
+
+```
+
+
+Set colors
+```{r}
+#B6B0A9 light gray
+#85837F gray
+#9D4350 maroon
+#DF9900 orange
+#253955 blue
+#535840 dark green
+#93A081 light green
+#E9DBC5 cream
+#FECE39 gold
+
+map_tricolor <- c("#93A081", "#9D4350", "#E9DBC5")
+gold <- "#FECE39"
+
+```
+
+Plot map
+```{r}
+
+ggplot()+
+  geom_sf(data = rents_2019, mapping = aes(fill = voucher_amount), color = NA)+
+  scale_fill_manual(values = map_tricolor) +
+  geom_sf(data = FHEPS_reports, mapping = aes(), color = gold, show.legend = TRUE)+
+  theme(
+    panel.grid = element_blank(),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text = element_blank()
+  )
+
+
+
+```
+
+Read in opportunity atlas data
+```{r}
+
+location <- "C:/Users/patri/Documents/SOI data project" #change this to put the file somewhere on your computer
+
+if (!file.exists(paste0(location, "/tract_outcomes_early.csv"))) {
+  download.file(url = "https://opportunityinsights.org/wp-content/uploads/2018/10/tract_outcomes.zip", paste0(location, "/opportunity_outcomes.zip"))
+
+  unzip(zipfile = paste0(location, "/opportunity_outcomes.zip"), exdir = location)
+
+  opportunity_data <- read.csv(paste0(location, "/tract_outcomes_early.csv"))
+} else {
+  opportunity_data <- read.csv(paste0(location, "/tract_outcomes_early.csv"))
+}
+
+
+```
+
