@@ -119,6 +119,8 @@ Set colors
 
 map_tricolor <- c("#93A081", "#9D4350", "#E9DBC5")
 gold <- "#FECE39"
+green_ramp <- colorRampPalette(c("#93A081", "#535840"))
+green_scale <- greenramp(10)
 
 nyc_water <- nyc_counties %>% 
   map(~area_water("NY", .x)) %>% 
@@ -163,16 +165,55 @@ Read in opportunity atlas data
 
 location <- "C:/Users/patri/Documents/SOI data project" #change this to put the file somewhere on your computer
 
-if (!file.exists(paste0(location, "/tract_outcomes_early.csv"))) {
-  download.file(url = "https://opportunityinsights.org/wp-content/uploads/2018/10/tract_outcomes.zip", paste0(location, "/opportunity_outcomes.zip"))
+if (!file.exists(paste0(location, "/tract_outcomes_simple.csv"))) {
+  print("downloading data")
 
-  unzip(zipfile = paste0(location, "/opportunity_outcomes.zip"), exdir = location)
+  download.file(url = "https://opportunityinsights.org/wp-content/uploads/2018/10/tract_outcomes_simple.csv", paste0(location, "/opportunity_outcomes_simple.csv"))
 
-  opportunity_data <- read.csv(paste0(location, "/tract_outcomes_early.csv"))
-} else {
-  opportunity_data <- read.csv(paste0(location, "/tract_outcomes_early.csv"))
 }
 
+opportunity_data <- read_csv(paste0(location, "/opportunity_outcomes_simple.csv"),
+                             col_types = cols(state = col_character(),
+                                              county = col_character(),
+                                              tract = col_character())) %>% 
+  mutate(GEOID = paste0(
+    str_pad(state, 2, "0", side = "left"),
+    str_pad(county, 3, "0", side = "left"),
+    str_pad(tract, 6, "0", side = "left")
+  ))
 
+
+```
+
+```{r}
+
+opportunity_sf <- left_join(rents_2019, opportunity_data, by = "GEOID")
+
+```
+
+```{r}
+ggplot()+
+  geom_sf(data = filter(opportunity_sf, !is.na(kfr_pooled_pooled_p25*100)), mapping = aes(fill = kfr_pooled_pooled_p25*100), color = NA)+
+  scale_fill_gradient(low = "#DCFFCD", high = "#373C2C") +
+  geom_sf(data = filter(opportunity_sf, is.na(kfr_pooled_pooled_p25*100)), mapping = aes(), fill = "#E9DBC5", color = NA)+
+  geom_sf(data = nyc_water, mapping = aes(), fill = "white", color = NA)+
+  geom_sf(data = FHEPS_reports, mapping = aes(), color = gold, show.legend = TRUE)+
+  theme(
+    panel.grid = element_blank(),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text = element_blank(),
+  )+
+  guides(fill = guide_colourbar(barwidth = 10, barheight = 0.5))
+
+
+```
+
+```{r}
+ggsave("FHEPS+opportunity.png",
+       device = "png",
+       width = 6.5,
+       height = 4.5)
 ```
 
