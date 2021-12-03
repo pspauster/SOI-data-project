@@ -115,9 +115,15 @@ Set colors
 #93A081 light green
 #E9DBC5 cream
 #FECE39 gold
+#466CA1 light blue
 
 map_tricolor <- c("#93A081", "#9D4350", "#E9DBC5")
 gold <- "#FECE39"
+
+nyc_water <- nyc_counties %>% 
+  map(~area_water("NY", .x)) %>% 
+  reduce(rbind) %>% 
+  st_set_crs(st_crs(rents_2019))
 
 ```
 
@@ -127,18 +133,30 @@ Plot map
 ggplot()+
   geom_sf(data = rents_2019, mapping = aes(fill = voucher_amount), color = NA)+
   scale_fill_manual(values = map_tricolor) +
+  geom_sf(data = nyc_water, mapping = aes(), fill = "white", color = NA)+
   geom_sf(data = FHEPS_reports, mapping = aes(), color = gold, show.legend = TRUE)+
   theme(
     panel.grid = element_blank(),
     axis.line.x = element_blank(),
     axis.line.y = element_blank(),
     axis.ticks.x = element_blank(),
-    axis.text = element_blank()
+    axis.text = element_blank(),
   )
 
 
 
 ```
+
+```{r}
+
+ggsave("FHEPS+voucher_amount.png",
+       device = "png",
+       width = 6.5,
+       height = 4.5)
+
+```
+
+
 
 Read in opportunity atlas data
 ```{r}
