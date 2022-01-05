@@ -120,7 +120,7 @@ Set colors
 map_tricolor <- c("#93A081", "#9D4350", "#E9DBC5")
 gold <- "#FECE39"
 green_ramp <- colorRampPalette(c("#93A081", "#535840"))
-green_scale <- greenramp(10)
+green_scale <- green_ramp(10)
 
 nyc_water <- nyc_counties %>% 
   map(~area_water("NY", .x)) %>% 
@@ -151,8 +151,8 @@ ggplot()+
 
 ```{r}
 
-ggsave("FHEPS+voucher_amount.png",
-       device = "png",
+ggsave("FHEPS+voucher_amount.svg",
+       device = "svg",
        width = 6.5,
        height = 4.5)
 
@@ -211,8 +211,8 @@ ggplot()+
 ```
 
 ```{r}
-ggsave("FHEPS+opportunity.png",
-       device = "png",
+ggsave("FHEPS+opportunity.svg",
+       device = "svg",
        width = 6.5,
        height = 4.5)
 ```
