@@ -117,10 +117,20 @@ Set colors
 #FECE39 gold
 #466CA1 light blue
 
-map_tricolor <- c("#93A081", "#9D4350", "#E9DBC5")
-gold <- "#FECE39"
-green_ramp <- colorRampPalette(c("#93A081", "#535840"))
-green_scale <- green_ramp(10)
+map_tricolor <- c("#262b66", "#8d94ae", "#E0E3E8")
+gold <- "#f2b550"
+blue_ramp <- colorRampPalette(c(
+"#171e44",
+"#171e44",
+"#262b66",
+"#414e73",
+"#636f8c",
+"#8d94ae",
+"#a4aab7",
+"#bfc1c6",
+"#e2e3e4"
+))
+blue_scale <- blue_ramp(10)
 
 nyc_water <- nyc_counties %>% 
   map(~area_water("NY", .x)) %>% 
@@ -194,8 +204,8 @@ opportunity_sf <- left_join(rents_2019, opportunity_data, by = "GEOID")
 ```{r}
 ggplot()+
   geom_sf(data = filter(opportunity_sf, !is.na(kfr_pooled_pooled_p25*100)), mapping = aes(fill = kfr_pooled_pooled_p25*100), color = NA)+
-  scale_fill_gradient(low = "#DCFFCD", high = "#373C2C") +
-  geom_sf(data = filter(opportunity_sf, is.na(kfr_pooled_pooled_p25*100)), mapping = aes(), fill = "#E9DBC5", color = NA)+
+  scale_fill_gradientn(colours = rev(blue_scale)) +
+  geom_sf(data = filter(opportunity_sf, is.na(kfr_pooled_pooled_p25*100)), mapping = aes(), fill = "#e2e3e4", color = NA)+
   geom_sf(data = nyc_water, mapping = aes(), fill = "white", color = NA)+
   geom_sf(data = FHEPS_reports, mapping = aes(), color = gold, show.legend = TRUE)+
   theme(
